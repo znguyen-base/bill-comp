@@ -1,0 +1,38 @@
+{
+  "updated": "2026-04-21",
+  "bp_rate": 0.08,
+  "gross_receipts_rate": 0.01833,
+  "sales_tax_rate": 0.01,
+  "tdu": {
+    "oncor": {
+      "name": "Oncor Electric Delivery",
+      "variable": 0.056183,
+      "fixed": 4.23,
+      "date": "04/06/2026"
+    },
+    "centerpoint": {
+      "name": "CenterPoint Energy Delivery",
+      "variable": 0.049993,
+      "fixed": 4.90,
+      "date": "04/06/2026"
+    },
+    "tnmp": {
+      "name": "TNMP Delivery",
+      "variable": 0.064665,
+      "fixed": 7.85,
+      "date": "04/21/2026"
+    },
+    "aep_central": {
+      "name": "AEP Central Delivery",
+      "variable": 0.058007,
+      "fixed": 3.24,
+      "date": "04/06/2026"
+    },
+    "aep_north": {
+      "name": "AEP North Delivery",
+      "variable": 0.056677,
+      "fixed": 3.24,
+      "date": "04/06/2026"
+    }
+  }
+}

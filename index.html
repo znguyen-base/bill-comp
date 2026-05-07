@@ -233,21 +233,21 @@
         <div>
           <div class="rc-label">Oncor</div>
           <div class="rc-val" id="oncor-rate-display">5.6183¢/kWh + $4.23/mo</div>
-          <div class="rc-date" id="oncor-efl-date">dated 03/14/2026</div>
+          <div class="rc-date" id="oncor-efl-date">dated 04/06/2026</div>
         </div>
       </div>
       <div class="efl-chip cp">
         <div>
           <div class="rc-label">CenterPoint</div>
           <div class="rc-val" id="cp-rate-display">4.9993¢/kWh + $4.90/mo</div>
-          <div class="rc-date" id="cp-efl-date">dated 03/14/2026</div>
+          <div class="rc-date" id="cp-efl-date">dated 04/06/2026</div>
         </div>
       </div>
       <div class="efl-chip oncor">
         <div>
           <div class="rc-label">TNMP</div>
-          <div class="rc-val" id="tnmp-rate-display">7.2739¢/kWh + $7.85/mo</div>
-          <div class="rc-date" id="tnmp-efl-date">dated 04/06/2026</div>
+          <div class="rc-val" id="tnmp-rate-display">6.4665¢/kWh + $7.85/mo</div>
+          <div class="rc-date" id="tnmp-efl-date">dated 04/21/2026</div>
         </div>
       </div>
       <div class="efl-chip cp">
@@ -288,6 +288,7 @@
         </label>
       </div>
     </div>
+    <div id="rates-status" style="font-size:0.68rem;margin-top:10px;color:#aaa;"></div>
   </div>
 
   <!-- ── Comparison Output ── -->
@@ -387,16 +388,60 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const TDU = {
-    oncor:       { variable: 0.056183, fixed: 4.23, name: 'Oncor Electric Delivery',       date: '03/14/2026' },
-    centerpoint: { variable: 0.049993, fixed: 4.90, name: 'CenterPoint Energy Delivery',   date: '03/14/2026' },
-    tnmp:        { variable: 0.072739, fixed: 7.85, name: 'TNMP Delivery',                 date: '04/06/2026' },
+  // ── Rates — loaded from rates.json, with hardcoded fallbacks ──
+  let TDU = {
+    oncor:       { variable: 0.056183, fixed: 4.23, name: 'Oncor Electric Delivery',       date: '04/06/2026' },
+    centerpoint: { variable: 0.049993, fixed: 4.90, name: 'CenterPoint Energy Delivery',   date: '04/06/2026' },
+    tnmp:        { variable: 0.064665, fixed: 7.85, name: 'TNMP Delivery',                 date: '04/21/2026' },
     aep_central: { variable: 0.058007, fixed: 3.24, name: 'AEP Central Delivery',          date: '04/06/2026' },
     aep_north:   { variable: 0.056677, fixed: 3.24, name: 'AEP North Delivery',            date: '04/06/2026' },
   };
-  const BP_RATE        = 0.08;
-  const GROSS_REC_RATE = 0.01833;
-  const SALES_TAX_RATE = 0.01;
+  let BP_RATE        = 0.08;
+  let GROSS_REC_RATE = 0.01833;
+  let SALES_TAX_RATE = 0.01;
+
+  const DISPLAY_IDS = {
+    oncor:       { rate: 'oncor-rate-display',       date: 'oncor-efl-date'        },
+    centerpoint: { rate: 'cp-rate-display',          date: 'cp-efl-date'           },
+    tnmp:        { rate: 'tnmp-rate-display',        date: 'tnmp-efl-date'         },
+    aep_central: { rate: 'aep-central-rate-display', date: 'aep-central-efl-date'  },
+    aep_north:   { rate: 'aep-north-rate-display',  date: 'aep-north-efl-date'    },
+  };
+
+  function updateRateChip(key) {
+    const t = TDU[key];
+    const d = DISPLAY_IDS[key];
+    if (!t || !d) return;
+    const rateEl = document.getElementById(d.rate);
+    const dateEl = document.getElementById(d.date);
+    if (rateEl) rateEl.textContent = `${(t.variable*100).toFixed(4)}¢/kWh + $${t.fixed.toFixed(2)}/mo`;
+    if (dateEl) dateEl.textContent = `dated ${t.date}`;
+  }
+
+  async function loadRates() {
+    const statusEl = document.getElementById('rates-status');
+    try {
+      const res = await fetch('./rates.json?v=' + Date.now());
+      if (!res.ok) throw new Error('Not found');
+      const data = await res.json();
+      if (data.tdu)              Object.assign(TDU, data.tdu);
+      if (data.bp_rate)          BP_RATE        = data.bp_rate;
+      if (data.gross_receipts_rate) GROSS_REC_RATE = data.gross_receipts_rate;
+      if (data.sales_tax_rate)   SALES_TAX_RATE = data.sales_tax_rate;
+      Object.keys(TDU).forEach(updateRateChip);
+      if (statusEl) {
+        statusEl.textContent = `✓ Rates loaded from rates.json (updated ${data.updated || 'unknown'})`;
+        statusEl.style.color = '#16a34a';
+      }
+    } catch(e) {
+      if (statusEl) {
+        statusEl.textContent = '⚠ Using built-in rates — add rates.json to your repo to override';
+        statusEl.style.color = '#f59e0b';
+      }
+    }
+  }
+
+  loadRates();
 
   function fmt(n) { return '$' + n.toFixed(2); }
 
@@ -444,10 +489,10 @@
     document.getElementById('s-savings').textContent     = fmt(savings);
     document.getElementById('s-savings-pct').textContent = `${savingsPct.toFixed(1)}% less per month`;
     document.getElementById('s-savings-yr').textContent  = `${fmt(yearlySav)}/year`;
-    document.getElementById('s-curr-rate').textContent   = `${(currAvgRate*100).toFixed(2)}¢/kWh avg`;
-    document.getElementById('s-bp-rate').textContent     = `${(bpAvgRate*100).toFixed(2)}¢/kWh avg`;
-    document.getElementById('s-curr-cpk').textContent    = (currAvgRate*100).toFixed(2) + '¢';
-    document.getElementById('s-bp-cpk').textContent      = (bpAvgRate*100).toFixed(2) + '¢';
+    document.getElementById('s-curr-rate').textContent   = `${(currAvgRate*100).toFixed(2)}¢/kWh all-in`;
+    document.getElementById('s-bp-rate').textContent     = `${(bpAvgRate*100).toFixed(2)}¢/kWh all-in`;
+    document.getElementById('s-curr-cpk').textContent    = (currAvgRate*100).toFixed(2) + '¢/kWh';
+    document.getElementById('s-bp-cpk').textContent      = (bpAvgRate*100).toFixed(2) + '¢/kWh';
     document.getElementById('s-yearly').textContent      = fmt(yearlySav);
 
     // ── Current bill rows ──
@@ -455,22 +500,33 @@
     const currTDUVar   = kwh * tdu.variable;
     const currTDU      = currTDUFixed + currTDUVar;
 
-    const currEnergy = currTotal - currTDU;
+    // Back-calculate taxes from the remainder after TDU
+    // Assumes same gross receipts + sales tax structure on current bill
+    const currAfterTDU  = Math.max(0, currTotal - currTDU);
+    // Solve: energy * (1 + GRR) * (1 + STR) + energy * (1 + GRR) * STR ≈ currAfterTDU
+    // Simpler: estimate taxes as same % of non-TDU charges
+    const taxRate       = (GROSS_REC_RATE) + (SALES_TAX_RATE * (1 + GROSS_REC_RATE));
+    const currTaxes     = currAfterTDU * taxRate / (1 + taxRate);
+    const currEnergy    = currAfterTDU - currTaxes;
+
     const currHTML =
-      brow('Energy + Base Charges', 'From your current provider', fmt(Math.max(0, currEnergy))) +
+      brow('Energy + Base Charges', 'Usage, base fee & provider charges', fmt(Math.max(0, currEnergy))) +
       brow(tdu.name, 'Regulated pass-through', fmt(currTDU), 'muted', [
         { label: 'Fixed charge', amt: fmt(currTDUFixed) + '/mo' },
-        { label: `Variable  ${(tdu.variable*100).toFixed(4)}¢ × ${kwh} kWh`, amt: fmt(currTDUVar) }
-      ]);
+        { label: `Variable ${(tdu.variable*100).toFixed(4)}¢ × ${kwh.toLocaleString()} kWh`, amt: fmt(currTDUVar) }
+      ]) +
+      brow('Taxes & Fees', 'Gross receipts, sales tax, etc.', fmt(currTaxes));
     document.getElementById('curr-rows').innerHTML = currHTML;
 
     // ── Base Power rows ──
     let bpHTML =
       brow('Energy Charge', `${kwh.toLocaleString()} kWh @ 8¢/kWh`, fmt(bpEnergy), 'green') +
       brow(tdu.name, `EFL dated ${tdu.date} — passed through at cost`, fmt(bpTDU), 'muted', [
-        { label: `Fixed charge`, amt: fmt(tdu.fixed) + '/mo' },
-        { label: `Variable  ${(tdu.variable*100).toFixed(4)}¢ × ${kwh} kWh`, amt: fmt(bpTDUVar) }
-      ]);
+        { label: `Fixed charge`, amt: fmt(bpTDUFixed) + '/mo' },
+        { label: `Variable ${(tdu.variable*100).toFixed(4)}¢ × ${kwh.toLocaleString()} kWh`, amt: fmt(bpTDUVar) }
+      ]) +
+      brow('Gross Receipts Tax', `${(GROSS_REC_RATE*100).toFixed(3)}% of energy charge`, fmt(bpGross)) +
+      brow('Sales Tax', '~1% (varies by city)', fmt(bpSalesTax));
 
     if (savings > 0) {
       bpHTML += `<div class="save-chip"><span class="sc-l">💰 Monthly savings vs. current</span><span class="sc-r">${fmt(savings)}</span></div>`;
@@ -483,8 +539,8 @@
     document.getElementById('out-bp-name').textContent    = 'Base Power';
     document.getElementById('out-curr-total').textContent = fmt(currTotal);
     document.getElementById('out-bp-total').textContent   = fmt(bpTotal);
-    document.getElementById('out-curr-rate').textContent  = `${(currAvgRate*100).toFixed(2)}¢/kWh avg`;
-    document.getElementById('out-bp-rate').textContent    = `8¢/kWh · ${(bpAvgRate*100).toFixed(2)}¢/kWh avg`;
+    document.getElementById('out-curr-rate').textContent  = `${(currAvgRate*100).toFixed(2)}¢/kWh all-in avg`;
+    document.getElementById('out-bp-rate').textContent    = `${(bpAvgRate*100).toFixed(2)}¢/kWh all-in avg`;
 
     document.getElementById('comparison').classList.add('visible');
   }
