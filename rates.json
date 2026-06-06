@@ -6,13 +6,13 @@
   "tdu": {
     "oncor": {
       "name": "Oncor Electric Delivery",
-      "variable": 0.056183,
-      "fixed": 4.23,
-      "date": "04/06/2026"
+      "variable": 0.061196,
+      "fixed": 4.06,
+      "date": "06/02/2026"
     },
     "centerpoint": {
       "name": "CenterPoint Energy Delivery",
-      "variable": 0.049993,
+      "variable": 0.051461,
       "fixed": 4.90,
       "date": "04/06/2026"
     },
